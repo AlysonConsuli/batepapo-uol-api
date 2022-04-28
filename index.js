@@ -1,7 +1,7 @@
 import express, { json } from 'express'
 import cors from 'cors'
 import { MongoClient } from 'mongodb'
-import dotenv from 'dotenv'
+import dotenv, { parse } from 'dotenv'
 import dayjs from 'dayjs'
 
 const app = express()
@@ -52,17 +52,42 @@ app.get('/participants', async (req, res) => {
     }
 })
 
-app.post('/messages', (req, res) => {
-    res.sendStatus(201)
+app.post('/messages', async (req, res) => {
+    try {
+        const { to, text, type } = req.body
+        const { user: from } = req.headers
+        await mongoClient.connect()
+        db = mongoClient.db('uol')
+        const messages = db.collection('messages')
+        await messages.insertOne({
+            from,
+            to,
+            text,
+            type,
+            time: dayjs().format('HH:mm:ss')
+        })
+        res.sendStatus(201)
+        mongoClient.close()
+    } catch {
+        res.status(400).send('Erro')
+        mongoClient.close()
+    }
 })
 
 app.get('/messages', async (req, res) => {
     try {
+        const limit = parseInt(req.query.limit)
+        const { user: from } = req.headers
         await mongoClient.connect()
         db = mongoClient.db('uol')
         const messagesCollection = db.collection('messages')
+        //const messages = await messagesCollection.find({ to: { $in: ['Todos', 'Teste'] } }).toArray()
         const messages = await messagesCollection.find({}).toArray()
-        res.send(messages)
+        if (limit) {
+            const messagesLimit = messages.slice(limit * -1)
+            res.send(messagesLimit)
+        }
+        (!limit && res.send(messages))
         mongoClient.close()
     } catch {
         res.status(400).send('Erro')
