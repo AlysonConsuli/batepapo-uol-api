@@ -101,7 +101,7 @@ app.post('/status', async (req, res) => {
         await mongoClient.connect()
         db = mongoClient.db('uol')
         const participants = db.collection('participants')
-        const participant = await participants.findOne({ name: user })
+        //const participant = await participants.findOne({ name: user })
         await participants.updateOne(
             { name: user },
             { $set: { lastStatus: Date.now() } }
@@ -113,5 +113,33 @@ app.post('/status', async (req, res) => {
         mongoClient.close()
     }
 })
+
+setInterval(async () => {
+    try {
+        await mongoClient.connect()
+        db = mongoClient.db('uol')
+        const participantsCollection = db.collection('participants')
+        const participants = await participantsCollection.find({}).toArray()
+        const messages = db.collection('messages')
+        for (let i = 0; i < participants.length; i++) {
+            const participant = participants[i]
+            if (Date.now() - participant.lastStatus > 10000) {
+                await participantsCollection.deleteOne({ _id: participant._id })
+                await messages.insertOne({
+                    from: participant.name,
+                    to: 'Todos',
+                    text: 'sai da sala...',
+                    type: 'status',
+                    time: dayjs().format('HH:mm:ss')
+                })
+            }
+        }
+        //console.log('Remove users inactive')
+        mongoClient.close()
+    } catch {
+        console.log('Erro')
+        mongoClient.close()
+    }
+}, 15000)
 
 app.listen(5000, () => console.log('Server is running on: http://localhost:5000'))
