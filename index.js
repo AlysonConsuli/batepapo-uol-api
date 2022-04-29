@@ -95,4 +95,23 @@ app.get('/messages', async (req, res) => {
     }
 })
 
+app.post('/status', async (req, res) => {
+    try {
+        const { user } = req.headers
+        await mongoClient.connect()
+        db = mongoClient.db('uol')
+        const participants = db.collection('participants')
+        const participant = await participants.findOne({ name: user })
+        await participants.updateOne(
+            { name: user },
+            { $set: { lastStatus: Date.now() } }
+        )
+        res.sendStatus(200)
+        mongoClient.close()
+    } catch {
+        res.status(400).send('Erro')
+        mongoClient.close()
+    }
+})
+
 app.listen(5000, () => console.log('Server is running on: http://localhost:5000'))
