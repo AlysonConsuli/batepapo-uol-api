@@ -3,6 +3,7 @@ import cors from 'cors'
 import { MongoClient } from 'mongodb'
 import dotenv from 'dotenv'
 import dayjs from 'dayjs'
+import joi from 'joi'
 
 const app = express()
 app.use(cors())
@@ -15,10 +16,23 @@ const promise = mongoClient.connect()
 promise.then(() => db = mongoClient.db('uol'))
 
 app.post('/participants', async (req, res) => {
+    const participantSchema = joi.object({
+        name: joi.string().required()
+    })
+    const { name } = req.body
+    const validation = participantSchema.validate(req.body, { abortEarly: false })
+    
+    if (validation.error) {
+        console.log(validation.error.details.map(detail => detail.message))
+        return res.sendStatus(422)
+    }
     try {
-        const { name } = req.body
         const participants = db.collection('participants')
         const messages = db.collection('messages')
+        const nameConflict = await participants.findOne({ name })
+        if (nameConflict) {
+            return res.sendStatus(409)
+        }
         await participants.insertOne({
             name,
             lastStatus: Date.now()
