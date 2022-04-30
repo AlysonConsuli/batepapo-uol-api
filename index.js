@@ -113,10 +113,24 @@ app.get('/messages', async (req, res) => {
 })
 
 app.post('/status', async (req, res) => {
+    const { user } = req.headers
+    const participants = db.collection('participants')
+    const participant = await participants.findOne({ name: user })
+
+    const statusSchema = joi.object({
+        name: joi.string().required()
+    })
+
+    const validation = statusSchema.validate(
+        participant,
+        { abortEarly: false, allowUnknown: true }
+    )
+    if (validation.error) {
+        console.log(validation.error.details.map(detail => detail.message))
+        return res.sendStatus(404)
+    }
+
     try {
-        const { user } = req.headers
-        const participants = db.collection('participants')
-        //const participant = await participants.findOne({ name: user })
         await participants.updateOne(
             { name: user },
             { $set: { lastStatus: Date.now() } }
@@ -145,9 +159,8 @@ setInterval(async () => {
                 })
             }
         }
-        //console.log('Remove users inactive')
     } catch {
-        console.log('Erro')
+        console.log('Erro ao atualizar participantes ativos')
     }
 }, 15000)
 
