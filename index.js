@@ -21,7 +21,7 @@ app.post('/participants', async (req, res) => {
     })
     const { name } = req.body
     const validation = participantSchema.validate(req.body, { abortEarly: false })
-    
+
     if (validation.error) {
         console.log(validation.error.details.map(detail => detail.message))
         return res.sendStatus(422)
@@ -46,7 +46,7 @@ app.post('/participants', async (req, res) => {
         })
         res.sendStatus(201)
     } catch {
-        res.status(400).send('Erro')
+        res.sendStatus(500)
     }
 })
 
@@ -56,7 +56,7 @@ app.get('/participants', async (req, res) => {
         const participants = await participantsCollection.find({}).toArray()
         res.send(participants)
     } catch {
-        res.status(400).send('Erro')
+        res.sendStatus(500)
     }
 })
 
@@ -74,7 +74,7 @@ app.post('/messages', async (req, res) => {
         })
         res.sendStatus(201)
     } catch {
-        res.status(400).send('Erro')
+        res.sendStatus(500)
     }
 })
 
@@ -91,7 +91,7 @@ app.get('/messages', async (req, res) => {
         }
         (!limit && res.send(messages))
     } catch {
-        res.status(400).send('Erro')
+        res.sendStatus(500)
     }
 })
 
@@ -106,7 +106,7 @@ app.post('/status', async (req, res) => {
         )
         res.sendStatus(200)
     } catch {
-        res.status(400).send('Erro')
+        res.sendStatus(500)
     }
 })
 
