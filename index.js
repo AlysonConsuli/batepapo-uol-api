@@ -100,8 +100,13 @@ app.get('/messages', async (req, res) => {
         const limit = parseInt(req.query.limit)
         const { user: from } = req.headers
         const messagesCollection = db.collection('messages')
-        //const messages = await messagesCollection.find({ to: { $in: ['Todos', 'Teste'] } }).toArray()
-        const messages = await messagesCollection.find({}).toArray()
+        const messages = await messagesCollection.find({
+            $or: [
+                { type: { $in: ['message', 'status'] } },
+                { from },
+                { to: from }
+            ]
+        }).toArray()
         if (limit) {
             const messagesLimit = messages.slice(limit * -1)
             res.send(messagesLimit)
