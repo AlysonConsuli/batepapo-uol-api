@@ -61,9 +61,26 @@ app.get('/participants', async (req, res) => {
 })
 
 app.post('/messages', async (req, res) => {
+    const messageSchema = joi.object({
+        to: joi.string().required(),
+        text: joi.string().required(),
+        type: joi.string().valid('message', 'private_message').required(),
+        from: joi.object({ name: joi.string().required() })
+    })
+    const { to, text, type } = req.body
+    const { user: from } = req.headers
+    const participant = await db.collection('participants').findOne({ name: from })
+
+    const validation = messageSchema.validate(
+        { ...req.body, from: participant },
+        { abortEarly: false, allowUnknown: true }
+    )
+    if (validation.error) {
+        console.log(validation.error.details.map(detail => detail.message))
+        return res.sendStatus(422)
+    }
+
     try {
-        const { to, text, type } = req.body
-        const { user: from } = req.headers
         const messages = db.collection('messages')
         await messages.insertOne({
             from,
