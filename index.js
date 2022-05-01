@@ -4,6 +4,7 @@ import { MongoClient } from 'mongodb'
 import dotenv from 'dotenv'
 import dayjs from 'dayjs'
 import joi from 'joi'
+import { stripHtml } from 'string-strip-html'
 
 const app = express()
 app.use(cors())
@@ -27,24 +28,25 @@ app.post('/participants', async (req, res) => {
         return res.sendStatus(422)
     }
     try {
+        const sanitizedName = stripHtml(name).result.trim()
         const participants = db.collection('participants')
         const messages = db.collection('messages')
-        const nameConflict = await participants.findOne({ name })
+        const nameConflict = await participants.findOne({ sanitizedName })
         if (nameConflict) {
             return res.sendStatus(409)
         }
         await participants.insertOne({
-            name,
+            name: sanitizedName,
             lastStatus: Date.now()
         })
         await messages.insertOne({
-            from: name,
+            from: sanitizedName,
             to: 'Todos',
             text: 'entra na sala...',
             type: 'status',
             time: dayjs().format('HH:mm:ss')
         })
-        res.sendStatus(201)
+        res.send({ name: sanitizedName }).status(201)
     } catch {
         res.sendStatus(500)
     }
@@ -83,10 +85,10 @@ app.post('/messages', async (req, res) => {
     try {
         const messages = db.collection('messages')
         await messages.insertOne({
-            from,
-            to,
-            text,
-            type,
+            from: stripHtml(from).result.trim(),
+            to: stripHtml(to).result.trim(),
+            text: stripHtml(text).result.trim(),
+            type: stripHtml(type).result.trim(),
             time: dayjs().format('HH:mm:ss')
         })
         res.sendStatus(201)
