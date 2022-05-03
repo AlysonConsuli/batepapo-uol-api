@@ -31,7 +31,7 @@ app.post('/participants', async (req, res) => {
         const sanitizedName = stripHtml(name).result.trim()
         const participants = db.collection('participants')
         const messages = db.collection('messages')
-        const nameConflict = await participants.findOne({ sanitizedName })
+        const nameConflict = await participants.findOne({ name: sanitizedName })
         if (nameConflict) {
             return res.sendStatus(409)
         }
@@ -67,7 +67,7 @@ app.post('/messages', async (req, res) => {
         to: joi.string().required(),
         text: joi.string().required(),
         type: joi.string().valid('message', 'private_message').required(),
-        from: joi.object({ name: joi.string().required() })
+        from: joi.object({ name: joi.string().required() }).required()
     })
     const { to, text, type } = req.body
     const { user: from } = req.headers
@@ -172,9 +172,8 @@ app.put('/messages/:messageId', async (req, res) => {
         to: joi.string().required(),
         text: joi.string().required(),
         type: joi.string().valid('message', 'private_message').required(),
-        from: joi.object({ name: joi.string().required() })
+        from: joi.object({ name: joi.string().required() }).required()
     })
-    const { to, text, type } = req.body
     const { user: from } = req.headers
     const participant = await db.collection('participants').findOne({ name: from })
 
@@ -209,8 +208,7 @@ setInterval(async () => {
         const participantsCollection = db.collection('participants')
         const participants = await participantsCollection.find({}).toArray()
         const messages = db.collection('messages')
-        for (let i = 0; i < participants.length; i++) {
-            const participant = participants[i]
+        participants.forEach(async participant => {
             if (Date.now() - participant.lastStatus > 10000) {
                 await participantsCollection.deleteOne({ _id: participant._id })
                 await messages.insertOne({
@@ -221,7 +219,7 @@ setInterval(async () => {
                     time: dayjs().format('HH:mm:ss')
                 })
             }
-        }
+        })
     } catch {
         console.log('Erro ao atualizar participantes ativos')
     }
